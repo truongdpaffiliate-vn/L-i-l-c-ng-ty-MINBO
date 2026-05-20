@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Marketing & Doanh thu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col">
+
+<div class="min-h-full flex flex-col">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-brand-600 text-white rounded-xl shadow-md shadow-indigo-200">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">MarketerAnalytics</span>
+                        <span class="text-xs block text-slate-500 font-medium">Báo cáo & Tối ưu hóa Doanh thu</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button onclick="resetToSampleData()" class="text-slate-600 hover:text-brand-600 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition duration-200 flex items-center gap-1">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Đặt lại dữ liệu mẫu</span>
+                    </button>
+                    <button onclick="exportToCSV()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition duration-200 flex items-center gap-1.5">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Xuất Excel/CSV</span>
+                    </button>
+                    <button onclick="openModal('shopeeImportModal')" class="bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1.5 sm:px-4.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition duration-200 shadow-lg shadow-orange-100 flex items-center gap-1.5">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        Nhập Shopee Excel
+                    </button>
+                    <button onclick="openModal('addEntryModal')" class="bg-brand-600 hover:bg-brand-700 text-white px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition duration-200 shadow-lg shadow-indigo-100 flex items-center gap-1.5">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Nhập tay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div id="onboarding-banner" class="hidden mb-8 bg-gradient-to-r from-brand-50 to-indigo-50 border border-brand-100 rounded-2xl p-6 flex-wrap gap-4 items-center justify-between shadow-sm">
+            <div class="flex items-start gap-4">
+                <div class="p-3 bg-brand-600 text-white rounded-xl shadow-md">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Chào mừng bạn đến với MarketerAnalytics!</h3>
+                    <p class="text-sm text-slate-600 mt-0.5">Hệ thống đang trống dữ liệu. Bạn có thể nạp bộ nhật ký mẫu 15 ngày để trải nghiệm hoặc chọn tải lên file dữ liệu doanh thu xuất trực tiếp từ Shopee (hỗ trợ Excel .xlsx / .xls và .csv).</p>
+                </div>
+            </div>
+            <div class="flex gap-3 text-xs sm:text-sm flex-wrap">
+                <button onclick="loadSampleDataDirectly()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-semibold transition shadow-sm">
+                    Nạp dữ liệu mẫu
+                </button>
+                <button onclick="openModal('shopeeImportModal')" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    Nhập file Shopee
+                </button>
+                <button onclick="openModal('addEntryModal')" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg font-semibold transition">
+                    Tự nhập tay
+                </button>
+            </div>
+        </div>
+
+        <div class="flex border-b border-slate-200 mb-8 overflow-x-auto space-x-8">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="border-b-2 border-brand-600 text-brand-600 py-4 px-1 text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition duration-200">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                Bảng điều khiển
+            </button>
+            <button onclick="switchTab('channels')" id="tab-channels" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-4 px-1 text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition duration-200">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                Phân tích Kênh Marketing
+            </button>
+            <button onclick="switchTab('history')" id="tab-history" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-4 px-1 text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition duration-200">
+                <i data-lucide="table" class="w-5 h-5"></i>
+                Nhật ký Chi tiêu & Doanh thu
+            </button>
+            <button onclick="switchTab('ai-advisor')" id="tab-ai-advisor" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-4 px-1 text-sm font-semibold flex items-center gap-2 whitespace-nowrap transition duration-200">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+                Trợ lý phân tích thông minh
+                <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">AI Beta</span>
+            </button>
+        </div>
+
+        <section id="content-dashboard" class="space-y-8 block">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Tổng quan hiệu suất vận hành</h2>
+                    <p class="text-xs text-slate-500">Xem và phân tích hiệu quả các chiến dịch marketing theo thời gian</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Lọc nhanh:</span>
+                    <button onclick="filterRange(7)" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition" id="btn-filter-7">7 Ngày</button>
+                    <button onclick="filterRange(30)" class="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-md text-xs font-medium transition" id="btn-filter-30">30 Ngày</button>
+                    <button onclick="filterRange('all')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition" id="btn-filter-all">Tất cả</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[9px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                            Gross Rev
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Doanh thu tổng</span>
+                        <h3 id="kpi-total-gross-revenue" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                            <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[9px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            Net Rev
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Thực nhận sau phí</span>
+                        <h3 id="kpi-total-revenue" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-red-50 text-red-600 rounded-xl">
+                            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[9px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                            Marketing
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Tổng chi quảng cáo</span>
+                        <h3 id="kpi-total-spend" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                            <i data-lucide="calculator" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[9px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                            COGS (Gồm may)
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Giá vốn hàng bán</span>
+                        <h3 id="kpi-total-cogs" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-pink-50 text-pink-600 rounded-xl">
+                            <i data-lucide="scissors" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[9px] font-semibold text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded">
+                            Tham chiếu
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Công may trong COGS</span>
+                        <h3 id="kpi-total-sewing" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-indigo-50 text-brand-600 rounded-xl">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                        </div>
+                        <span id="kpi-profit-margin" class="text-[9px] font-semibold text-brand-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                            0% Biên ròng
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">Lợi nhuận ròng</span>
+                        <h3 id="kpi-gross-profit" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0 ₫</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="p-2 bg-fuchsia-50 text-fuchsia-600 rounded-xl">
+                            <i data-lucide="award" class="w-5 h-5"></i>
+                        </div>
+                        <span id="kpi-roi" class="text-[9px] font-semibold text-fuchsia-700 bg-fuchsia-50 px-1.5 py-0.5 rounded">
+                            ROI: 0%
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-medium block">ROAS trung bình</span>
+                        <h3 id="kpi-roas" class="text-sm sm:text-base font-extrabold text-slate-950 mt-1">0.00x</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Xu hướng Doanh thu, Chi phí & Lợi nhuận</h3>
+                            <p class="text-xs text-slate-500">So sánh tăng trưởng doanh thu với ngân sách quảng cáo, giá vốn và tiền gia công may (Công may được thể hiện để theo dõi tỷ lệ trong COGS)</p>
+                        </div>
+                    </div>
+                    <div class="relative h-80 w-full">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">Hiệu quả ROAS theo ngày</h3>
+                            <p class="text-xs text-slate-500">Theo dõi đường tới hạn mức mục tiêu (ROAS > 3.0)</p>
+                        </div>
+                    </div>
+                    <div class="relative h-80 w-full">
+                        <canvas id="roasGaugeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="content-channels" class="space-y-8 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="mb-4">
+                        <h3 class="text-base font-bold text-slate-900">Phân bổ ngân sách Marketing</h3>
+                        <p class="text-xs text-slate-500">Tỷ trọng ngân sách quảng cáo của các kênh chính</p>
+                    </div>
+                    <div class="relative h-64 flex justify-center items-center">
+                        <canvas id="channelShareChart" class="max-w-[240px]"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
+                    <div class="mb-4">
+                        <h3 class="text-base font-bold text-slate-900">Bảng so sánh hiệu suất từng kênh quảng cáo</h3>
+                        <p class="text-xs text-slate-500">Dữ liệu phân tích hiệu năng của từng kênh trong dải thời gian chọn</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kênh</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Ngân sách chi</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Tỷ lệ phân bổ</th>
+                                    <th scope="col" class="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Độ ưu tiên khuyên dùng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="channel-breakdown-tbody" class="divide-y divide-slate-100 bg-white text-sm">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="content-history" class="space-y-6 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" id="tableSearch" oninput="filterTable()" placeholder="Tìm kiếm ghi chú hoặc ngày..." class="block w-64 pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="clearAllData()" class="px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition duration-200 flex items-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Xóa tất cả nhật ký
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 table-fixed">
+                        <thead class="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="w-24 px-4 py-3.5 text-left">Ngày</th>
+                                <th class="w-28 px-4 py-3.5 text-right">Doanh thu tổng</th>
+                                <th class="w-28 px-4 py-3.5 text-right">Thực nhận sau phí</th>
+                                <th class="w-24 px-4 py-3.5 text-right">Giá vốn (COGS)</th>
+                                <th class="w-24 px-4 py-3.5 text-right">Trong đó: May</th>
+                                <th class="w-24 px-4 py-3.5 text-right">Chi phí Mar</th>
+                                <th class="w-28 px-4 py-3.5 text-right">Lợi nhuận ròng</th>
+                                <th class="px-4 py-3.5 text-left">Kênh chi tiêu</th>
+                                <th class="w-16 px-4 py-3.5 text-center">ROAS</th>
+                                <th class="w-40 px-4 py-3.5 text-left">Ghi chú nguồn</th>
+                                <th class="w-20 px-4 py-3.5 text-center">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody" class="divide-y divide-slate-100 bg-white text-sm">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="content-ai-advisor" class="space-y-8 hidden">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex items-center space-x-3 mb-6">
+                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Hệ thống Trợ lý Phân tích và Tối ưu hóa Marketing</h2>
+                        <p class="text-xs text-slate-500">Phân tích chéo dữ liệu đầu vào và đề xuất các quyết định tăng trưởng ngân sách thông minh</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Đánh giá chung hiệu quả</span>
+                            <div class="flex items-baseline mt-2 gap-1.5">
+                                <span id="ai-health-score" class="text-4xl font-extrabold text-indigo-600">--</span>
+                                <span class="text-slate-400 text-sm">/ 10</span>
+                            </div>
+                            <p id="ai-health-desc" class="text-sm text-slate-600 mt-2 font-medium">--</p>
+                        </div>
+                        <div class="pt-4 border-t border-slate-200/60 mt-4">
+                            <span class="text-xs text-slate-400 block">Kênh đóng góp chính:</span>
+                            <span id="ai-top-channel" class="text-sm font-semibold text-slate-800">--</span>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 space-y-4">
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Thông điệp cốt lõi & Khuyến nghị hành động</h4>
+                        <div id="ai-recommendations-list" class="space-y-3">
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-brand-900 to-indigo-950 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute right-0 top-0 translate-x-12 -translate-y-12 opacity-10">
+                    <i data-lucide="trending-up" class="w-80 h-80"></i>
+                </div>
+                <div class="relative z-10 max-w-2xl">
+                    <span class="text-brand-300 text-xs font-bold tracking-wider uppercase">Chỉ báo mô phỏng tăng trưởng</span>
+                    <h3 class="text-xl font-bold mt-1 mb-3">Sẽ thế nào nếu bạn tăng thêm 20% ngân sách Marketing?</h3>
+                    <p class="text-slate-300 text-sm mb-6 leading-relaxed">
+                        Hệ thống tự động sử dụng xu hướng biên hiệu quả (ROAS) trong thời gian gần nhất để dự toán doanh thu đạt thêm. Giúp doanh nghiệp đưa ra ngân sách chi tiêu tối ưu cho kỳ kế tiếp mà không lo ngại sụt giảm ROI.
+                    </p>
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <button onclick="runGrowthSimulation()" class="bg-white text-brand-900 hover:bg-slate-100 font-semibold px-4 py-2.5 rounded-lg text-sm transition duration-200 flex items-center gap-1.5 shadow-md">
+                            <i data-lucide="zap" class="w-4 h-4 text-brand-500 fill-brand-500"></i>
+                            Bắt đầu mô phỏng ngay
+                        </button>
+                        <div id="simulation-output" class="text-sm font-medium text-brand-100"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400">
+            &copy; 2026 MarketerAnalytics - Phần mềm theo dõi hiệu quả Marketing nội bộ doanh nghiệp.
+        </div>
+    </footer>
+</div>
+
+<div id="addEntryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-brand-50 text-brand-600 rounded-lg">
+                    <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900" id="modal-title">Thêm Nhật ký Hiệu quả Ngày mới</h3>
+            </div>
+            <button onclick="closeModal('addEntryModal')" class="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="entryForm" onsubmit="saveEntry(event)" class="overflow-y-auto p-6 space-y-4">
+            <input type="hidden" id="entryIndex" value="">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Ngày lập *</label>
+                    <input type="date" id="input-date" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Doanh thu tổng (Gross) *</label>
+                    <input type="number" id="input-gross-revenue" required min="0" placeholder="e.g. 17500000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Thực nhận (Net) *</label>
+                    <input type="number" id="input-revenue" required min="0" placeholder="e.g. 15000000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Giá vốn COGS (Đã gồm công may) (đ)</label>
+                    <input type="number" id="input-cogs" min="0" value="0" placeholder="e.g. 5000000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Trong đó: Tiền công may (đ) *</label>
+                    <input type="number" id="input-sewing" min="0" value="0" placeholder="e.g. 2000000" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                    <span class="text-[9px] text-slate-400 italic block mt-0.5">* Chỉ dùng để theo dõi, không bị trừ thêm lần nữa.</span>
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Chi phí Quảng cáo theo từng kênh (đ)</span>
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                        <label class="block text-xs text-slate-500 font-medium mb-1">Facebook Ads</label>
+                        <input type="number" id="input-fb" value="0" min="0" class="channel-spend w-full px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 font-medium mb-1">Google Ads</label>
+                        <input type="number" id="input-gg" value="0" min="0" class="channel-spend w-full px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 font-medium mb-1">TikTok Ads</label>
+                        <input type="number" id="input-tt" value="0" min="0" class="channel-spend w-full px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 font-medium mb-1">Sàn TMĐT & Khác</label>
+                        <input type="number" id="input-others" value="0" min="0" class="channel-spend w-full px-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Ghi chú chiến dịch quảng cáo chính</label>
+                <textarea id="input-notes" rows="2" placeholder="Ví dụ: Chạy chiến dịch Mega Sale 5.5, tăng mạnh ngân sách FB" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"></textarea>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('addEntryModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium transition">
+                    Đóng
+                </button>
+                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-indigo-100 transition">
+                    Lưu thông tin
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="shopeeImportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-orange-50 text-orange-600 rounded-lg">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Đồng bộ doanh thu từ file Shopee</h3>
+                    <p class="text-xs text-slate-500">Tải lên file báo cáo đơn hàng xuất từ Shopee để tách doanh thu và đối soát tiền công may nằm trong giá vốn</p>
+                </div>
+            </div>
+            <button onclick="closeModal('shopeeImportModal')" class="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="overflow-y-auto p-6 space-y-6 flex-1">
+            <div id="shopee-upload-zone" class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-orange-500 hover:bg-orange-50/10 transition duration-200 cursor-pointer bg-slate-50/50" onclick="document.getElementById('shopee-file-input').click()">
+                <input type="file" id="shopee-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleShopeeFileSelect(event)">
+                <div class="flex flex-col items-center justify-center space-y-3">
+                    <div class="p-4 bg-orange-100 text-orange-600 rounded-full">
+                        <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">Chọn hoặc Kéo thả tệp báo cáo Shopee (.xlsx, .xls, .csv) vào đây</p>
+                        <p class="text-xs text-slate-400 mt-1">Hỗ trợ đầy đủ định dạng Excel xuất trực tiếp từ Kênh Người Bán Shopee</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shopee-preview-container" class="hidden space-y-5">
+                <div class="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100 flex flex-wrap gap-4 text-[11px] sm:text-xs justify-between items-center">
+                    <div class="space-y-0.5">
+                        <span class="text-slate-500 block font-medium">Tổng số dòng đơn:</span>
+                        <strong id="shopee-total-orders" class="text-slate-800 font-bold">0</strong>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-slate-500 block font-medium">Đơn khớp lọc:</span>
+                        <strong id="shopee-valid-orders" class="text-emerald-600 font-bold">0</strong>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-slate-500 block font-medium">Gross Rev (Doanh thu tổng):</span>
+                        <strong id="shopee-total-gross" class="text-slate-800 font-bold">0 ₫</strong>
+                    </div>
+                    <div class="space-y-0.5">
+                        <span class="text-slate-500 block font-medium">Tổng phí khấu trừ:</span>
+                        <strong id="shopee-total-fees" class="text-red-600 font-bold">0 ₫</strong>
+                    </div>
+                    <div class="space-y-0.5 bg-white p-2.5 rounded-lg border border-orange-200">
+                        <span class="text-slate-500 block font-semibold text-[10px]">Net Rev (Thực nhận):</span>
+                        <strong id="shopee-total-net" class="text-xs sm:text-sm text-emerald-700 font-extrabold">0 ₫</strong>
+                    </div>
+                    <div class="space-y-0.5 bg-orange-100 p-2.5 rounded-lg border border-orange-200">
+                        <span class="text-orange-950 block font-semibold text-[10px]">Giá vốn COGS (Gồm may):</span>
+                        <strong id="shopee-total-cogs-preview" class="text-xs sm:text-sm text-orange-800 font-extrabold">0 ₫</strong>
+                    </div>
+                    <div class="space-y-0.5 bg-pink-100 p-2.5 rounded-lg border border-pink-200">
+                        <span class="text-pink-950 block font-semibold text-[10px]">Trong đó Công may:</span>
+                        <strong id="shopee-total-sewing-preview" class="text-xs sm:text-sm text-pink-800 font-extrabold">0 ₫</strong>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="package" class="w-4 h-4 text-orange-500"></i>
+                            Danh sách sản phẩm đã bán, Giá vốn (Đã gồm may) & Tiền công may
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded border border-slate-200">
+                            Hệ thống tự lưu động theo SKU phân loại
+                        </span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[250px] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-xs">
+                            <thead class="bg-slate-100 sticky top-0 font-bold text-slate-600 uppercase tracking-wider z-10">
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left w-1/3">Tên sản phẩm / Phân loại</th>
+                                    <th class="px-4 py-2.5 text-left w-1/6 font-mono">SKU phân loại / SP</th>
+                                    <th class="px-4 py-2.5 text-center w-12">Số lượng</th>
+                                    <th class="px-4 py-2.5 text-right w-1/6">Giá vốn COGS (đ/sp)</th>
+                                    <th class="px-4 py-2.5 text-right w-1/6 text-pink-700">Trong đó: Công may (đ/sp)</th>
+                                    <th class="px-4 py-2.5 text-right w-1/5">Tổng tiền hàng COGS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shopee-products-tbody" class="divide-y divide-slate-100 bg-white">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="calculator" class="w-4 h-4 text-orange-500"></i>
+                        Phân rã chi tiết các loại phí bóc tách từ tệp Excel
+                    </span>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                            <span class="text-slate-400 block font-medium mb-1">Phí Cố Định:</span>
+                            <strong id="shopee-fixed-fee-sum" class="text-slate-800 font-semibold text-sm">0 ₫</strong>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                            <span class="text-slate-400 block font-medium mb-1">Phí Thanh Toán/GD:</span>
+                            <strong id="shopee-payment-fee-sum" class="text-slate-800 font-semibold text-sm">0 ₫</strong>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                            <span class="text-slate-400 block font-medium mb-1">Phí Dịch Vụ (Xtra/Xu):</span>
+                            <strong id="shopee-service-fee-sum" class="text-slate-800 font-semibold text-sm">0 ₫</strong>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                            <span class="text-slate-400 block font-medium mb-1">Phí Ước Tính/Phí khác:</span>
+                            <strong id="shopee-other-fee-sum" class="text-slate-800 font-semibold text-sm">0 ₫</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Trạng thái đơn tính doanh thu:</span>
+                        <div id="shopee-status-checkboxes" class="flex flex-wrap gap-2">
+                            </div>
+                        <p class="text-[10px] text-slate-400 mt-2 italic">* Nên tích chọn các đơn hàng đã được giao hoặc hoàn thành để tránh tính doanh thu ảo từ đơn hủy.</p>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Cách tính phí dịch vụ & Phí sàn:</span>
+                        
+                        <div class="space-y-2">
+                            <label class="flex items-center text-xs font-semibold text-slate-700 cursor-pointer">
+                                <input type="radio" name="shopee-fee-type" value="file" checked onchange="updateShopeeAnalysis()" class="mr-2 accent-orange-500">
+                                Ưu tiên bóc tách chi tiết từ cột phí gốc trong file (Khuyên dùng)
+                            </label>
+                            <label class="flex items-center text-xs font-semibold text-slate-700 cursor-pointer">
+                                <input type="radio" name="shopee-fee-type" value="percent" onchange="updateShopeeAnalysis()" class="mr-2 accent-orange-500">
+                                Áp dụng khấu trừ % phí sàn cố định ước lượng
+                            </label>
+                        </div>
+
+                        <div id="shopee-fee-percent-container" class="pt-2 border-t border-slate-200 flex items-center gap-2 opacity-40 pointer-events-none">
+                            <span class="text-xs text-slate-600 font-medium">Mức phí áp dụng:</span>
+                            <div class="relative rounded-md shadow-sm w-24">
+                                <input type="number" id="shopee-fee-percent-input" value="10.5" step="0.1" min="0" max="100" oninput="updateShopeeAnalysis()" class="block w-full rounded-md border-slate-200 pr-7 pl-3 py-1 text-xs focus:ring-orange-500 focus:border-orange-500 text-center">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <span class="text-slate-400 text-xs">%</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-400 italic">Phí mặc định nếu không có cột phí trong file</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Phương thức nạp vào hệ thống</span>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Xử lý khi ngày trong file Shopee bị trùng lặp với ngày đã có trong nhật ký của bạn</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center text-xs font-semibold text-slate-700 cursor-pointer">
+                            <input type="radio" name="shopee-merge-mode" value="overwrite" checked class="mr-2 accent-orange-500">
+                            Ghi đè doanh thu ngày cũ
+                        </label>
+                        <label class="flex items-center text-xs font-semibold text-slate-700 cursor-pointer">
+                            <input type="radio" name="shopee-merge-mode" value="accumulate" class="mr-2 accent-orange-500">
+                            Cộng dồn vào doanh thu ngày cũ
+                        </label>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Danh sách tổng hợp doanh thu theo ngày lọc được:</span>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden max-h-[220px] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-xs">
+                            <thead class="bg-slate-50 sticky top-0 font-bold text-slate-600 uppercase tracking-wider z-10">
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left">Ngày bán hàng</th>
+                                    <th class="px-4 py-2.5 text-center">Số lượng đơn</th>
+                                    <th class="px-4 py-2.5 text-right">Tổng thanh toán (Gross)</th>
+                                    <th class="px-4 py-2.5 text-right">Tổng phí ước tính</th>
+                                    <th class="px-4 py-2.5 text-right text-emerald-600">Thực nhận sau phí (Net)</th>
+                                    <th class="px-4 py-2.5 text-center">Đồng ý nhập</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shopee-preview-tbody" class="divide-y divide-slate-100 bg-white">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-slate-200 flex justify-between items-center bg-slate-50 rounded-b-2xl flex-shrink-0">
+            <button onclick="resetShopeeImportZone()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+                Tải tệp tin khác
+            </button>
+            <div class="flex space-x-3">
+                <button type="button" onclick="closeModal('shopeeImportModal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 border border-slate-200 bg-white rounded-lg text-sm font-medium transition">
+                    Đóng
+                </button>
+                <button type="button" id="shopee-import-submit-btn" onclick="commitShopeeImport()" disabled class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-orange-100 transition opacity-50 cursor-not-allowed">
+                    Nhập dữ liệu vào Nhật ký
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div class="flex items-center gap-3 text-amber-600" id="confirm-header">
+            <div class="p-2 bg-amber-50 rounded-xl" id="confirm-icon-bg">
+                <i data-lucide="alert-triangle" class="w-6 h-6" id="confirm-icon"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900" id="confirm-title">Xác nhận yêu cầu</h3>
+        </div>
+        <p class="text-sm text-slate-600 leading-relaxed" id="confirm-message">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+        <div class="flex justify-end space-x-3 pt-2">
+            <button id="confirm-cancel-btn" class="px-4 py-2 text-slate-600 hover:bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium transition">
+                Hủy bỏ
+            </button>
+            <button id="confirm-ok-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold shadow-md transition">
+                Đồng ý
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="customAlert" class="fixed bottom-6 right-6 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 hidden items-center space-x-3 z-50 transform translate-y-10 transition-transform duration-300">
+    <div class="text-emerald-400" id="alert-icon-success">
+        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+    </div>
+    <div class="text-amber-400 hidden" id="alert-icon-warning">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1 text-xs font-medium" id="alert-message">
+        Thông báo mẫu tại đây.
+    </div>
+</div>
+
+<script>
+// Mock data generator for initial run
+const getSampleData = () => {
+    return [
+        { date: '2026-05-01', grossRevenue: 28500000, revenue: 24500000, spend: { fb: 3000000, gg: 1500000, tt: 1000000, others: 500000 }, cogs: 8500000, sewing: 2500000, notes: 'Đầu tháng tập trung cả 3 kênh' },
+        { date: '2026-05-02', grossRevenue: 24000000, revenue: 21000000, spend: { fb: 3500000, gg: 1500000, tt: 1200000, others: 400000 }, cogs: 7200000, sewing: 2000000, notes: 'Tăng nhẹ ngân sách FB' },
+        { date: '2026-05-03', grossRevenue: 21200000, revenue: 18500000, spend: { fb: 4000000, gg: 1800000, tt: 1500000, others: 500000 }, cogs: 6100000, sewing: 1800000, notes: 'Chạy thử nhóm khách hàng mới' },
+        { date: '2026-05-04', grossRevenue: 34100000, revenue: 29800000, spend: { fb: 4500000, gg: 2000000, tt: 2000000, others: 1000000 }, cogs: 10400000, sewing: 3100000, notes: 'Chương trình Flash Sale giữa tuần' },
+        { date: '2026-05-05', grossRevenue: 36800000, revenue: 32000000, spend: { fb: 3000000, gg: 2500000, tt: 3000000, others: 500000 }, cogs: 11500000, sewing: 3500000, notes: 'Tập trung đẩy mạnh TikTok Shop' },
+        { date: '2026-05-06', grossRevenue: 31500000, revenue: 27400000, spend: { fb: 3200000, gg: 2200000, tt: 2500000, others: 600000 }, cogs: 9500000, sewing: 2900000, notes: 'Duy trì hiệu quả cao' },
+        { date: '2026-05-07', grossRevenue: 28900000, revenue: 25000000, spend: { fb: 3000000, gg: 2000000, tt: 2000000, others: 500000 }, cogs: 8600000, sewing: 2500000, notes: 'Cuối tuần giảm nhẹ chi phí FB' },
+        { date: '2026-05-08', grossRevenue: 25900000, revenue: 22500000, spend: { fb: 2800000, gg: 1800000, tt: 1800000, others: 500000 }, cogs: 7900000, sewing: 2200000, notes: 'Tối ưu lại tệp đối tượng Google' },
+        { date: '2026-05-09', grossRevenue: 40200000, revenue: 35000000, spend: { fb: 5000000, gg: 3000000, tt: 4000000, others: 1500000 }, cogs: 12200000, sewing: 3800000, notes: 'Chiến dịch cuối tuần bùng nổ doanh số' },
+        { date: '2026-05-10', grossRevenue: 43500000, revenue: 38000000, spend: { fb: 5500000, gg: 3500000, tt: 4500000, others: 1500000 }, cogs: 13300000, sewing: 4200000, notes: 'Tiếp tục đẩy mạnh chiến dịch' },
+        { date: '2026-05-11', grossRevenue: 21800000, revenue: 19000000, spend: { fb: 2500000, gg: 1500000, tt: 1200000, others: 500000 }, cogs: 6600000, sewing: 1900000, notes: 'Thứ 2 hạ ngân sách hạ nhiệt chiến dịch' },
+        { date: '2026-05-12', grossRevenue: 20900000, revenue: 18200000, spend: { fb: 2400000, gg: 1400000, tt: 1000000, others: 500000 }, cogs: 6300000, sewing: 1900000, notes: 'Tối ưu hóa phễu khách hàng' },
+        { date: '2026-05-13', grossRevenue: 25300000, revenue: 22000000, spend: { fb: 2600000, gg: 1800000, tt: 1500000, others: 600000 }, cogs: 7700000, sewing: 2200000, notes: 'Doanh thu bắt đầu phục hồi' },
+        { date: '2026-05-14', grossRevenue: 30500000, revenue: 26500000, spend: { fb: 3000000, gg: 2000000, tt: 2000000, others: 700000 }, cogs: 9200000, sewing: 2700000, notes: 'Tăng ngân sách nhẹ để chuẩn bị giữa tháng' },
+        { date: '2026-05-15', grossRevenue: 48300000, revenue: 42000000, spend: { fb: 6000000, gg: 3500000, tt: 5000000, others: 2000000 }, cogs: 14500000, sewing: 4500000, notes: 'Siêu Sale Ngày Giữa Tháng 15.5' }
+    ];
+};
+
+// Application state
+let appState = {
+    data: JSON.parse(localStorage.getItem('mkt_rev_tracker_data')) || [],
+    activeTab: 'dashboard',
+    filterDays: 30, 
+};
+
+// State variables for Shopee file import parsing
+let parsedShopeeRows = [];
+let parsedShopeeHeaders = [];
+let uniqueShopeeStatuses = [];
+let selectedShopeeStatuses = new Set();
+let dailyShopeeSummary = {};
+let importedProductsCatalog = {}; 
+
+// Keep tracking of chart instances
+let trendChartInstance = null;
+let roasChartInstance = null;
+let shareChartInstance = null;
+
+// Reusable Custom Confirm Modal system
+const triggerConfirmModal = (title, message, isDanger, onConfirmCallback) => {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-message');
+    const headerEl = document.getElementById('confirm-header');
+    const iconBgEl = document.getElementById('confirm-icon-bg');
+    const okBtn = document.getElementById('confirm-ok-btn');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+    titleEl.innerText = title;
+    msgEl.innerText = message;
+
+    if (isDanger) {
+        headerEl.className = "flex items-center gap-3 text-red-600";
+        iconBgEl.className = "p-2 bg-red-50 rounded-xl text-red-600";
+        okBtn.className = "px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-md transition";
+    } else {
+        headerEl.className = "flex items-center gap-3 text-amber-600";
+        iconBgEl.className = "p-2 bg-amber-50 rounded-xl text-amber-600";
+        okBtn.className = "px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold shadow-md transition";
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    const cleanUp = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    };
+
+    okBtn.onclick = () => {
+        cleanUp();
+        onConfirmCallback();
+    };
+    cancelBtn.onclick = () => { cleanUp(); };
+};
+
+// Currency Formatter
+const formatCurrency = (val) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+};
+
+// Custom Notification Function
+const showToast = (message, isWarning = false) => {
+    const alertBox = document.getElementById('customAlert');
+    const msgEl = document.getElementById('alert-message');
+    const successIcon = document.getElementById('alert-icon-success');
+    const warningIcon = document.getElementById('alert-icon-warning');
+
+    msgEl.innerText = message;
+    if (isWarning) {
+        successIcon.classList.add('hidden');
+        warningIcon.classList.remove('hidden');
+    } else {
+        successIcon.classList.remove('hidden');
+        warningIcon.classList.add('hidden');
+    }
+
+    alertBox.classList.remove('hidden', 'translate-y-10');
+    alertBox.classList.add('flex');
+
+    setTimeout(() => {
+        alertBox.classList.add('translate-y-10');
+        setTimeout(() => { alertBox.classList.add('hidden'); }, 300);
+    }, 4000);
+};
+
+// Tab controller switching
+const switchTab = (tabId) => {
+    const tabs = ['dashboard', 'channels', 'history', 'ai-advisor'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const sec = document.getElementById(`content-${t}`);
+        if (t === tabId) {
+            btn.classList.add('border-brand-600', 'text-brand-600');
+            btn.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'hover:border-slate-300');
+            if(sec) sec.classList.remove('hidden');
+        } else {
+            btn.classList.remove('border-brand-600', 'text-brand-600');
+            btn.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'hover:border-slate-300');
+            if(sec) sec.classList.add('hidden');
+        }
+    });
+    appState.activeTab = tabId;
+    
+    if (tabId === 'dashboard') {
+        renderDashboardCharts();
+    } else if (tabId === 'channels') {
+        renderChannelsData();
+    } else if (tabId === 'ai-advisor') {
+        runAIAdvisor();
+    }
+};
+
+// Filter Range Action
+const filterRange = (days) => {
+    appState.filterDays = days;
+    const filters = [7, 30, 'all'];
+    filters.forEach(f => {
+        const btn = document.getElementById(`btn-filter-${f}`);
+        if (btn) {
+            if (f === days) {
+                btn.classList.remove('bg-slate-100', 'text-slate-700');
+                btn.classList.add('bg-brand-50', 'text-brand-600');
+            } else {
+                btn.classList.add('bg-slate-100', 'text-slate-700');
+                btn.classList.remove('bg-brand-50', 'text-brand-600');
+            }
+        }
+    });
+
+    updateDashboardMetrics();
+    renderDashboardCharts();
+    if (appState.activeTab === 'channels') renderChannelsData();
+    if (appState.activeTab === 'ai-advisor') runAIAdvisor();
+};
+
+// Get currently active filtered data
+const getFilteredData = () => {
+    let sorted = [...appState.data].sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (appState.filterDays === 'all') return sorted;
+    const cutOffDate = new Date();
+    cutOffDate.setDate(cutOffDate.getDate() - appState.filterDays);
+    return sorted.filter(item => new Date(item.date) >= cutOffDate);
+};
+
+// Calculate all metrics
+const updateDashboardMetrics = () => {
+    const banner = document.getElementById('onboarding-banner');
+    if (banner) {
+        if (appState.data.length === 0) {
+            banner.classList.remove('hidden');
+            banner.classList.add('flex');
+        } else {
+            banner.classList.add('hidden');
+        }
+    }
+
+    const data = getFilteredData();
+    let totalGrossRevenue = 0;
+    let totalRevenue = 0; 
+    let totalMktSpend = 0;
+    let totalCogs = 0; 
+    let totalSewing = 0; 
+
+    data.forEach(item => {
+        totalGrossRevenue += Number(item.grossRevenue || item.revenue || 0);
+        totalRevenue += Number(item.revenue || 0);
+        const itemSpend = Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+        totalMktSpend += itemSpend;
+        totalCogs += Number(item.cogs || 0);
+        totalSewing += Number(item.sewing || 0);
+    });
+
+    // Net Profit calculation
+    const netProfit = totalRevenue - totalMktSpend - totalCogs;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const roas = totalMktSpend > 0 ? (totalRevenue / totalMktSpend) : 0;
+    const roi = totalMktSpend > 0 ? (netProfit / totalMktSpend) * 100 : 0;
+
+    const elGrossRevenue = document.getElementById('kpi-total-gross-revenue');
+    if (elGrossRevenue) elGrossRevenue.innerText = formatCurrency(totalGrossRevenue);
+
+    const elRevenue = document.getElementById('kpi-total-revenue');
+    if (elRevenue) elRevenue.innerText = formatCurrency(totalRevenue);
+
+    const elSpend = document.getElementById('kpi-total-spend');
+    if (elSpend) elSpend.innerText = formatCurrency(totalMktSpend);
+
+    const elCogs = document.getElementById('kpi-total-cogs');
+    if (elCogs) elCogs.innerText = formatCurrency(totalCogs);
+
+    const elSewing = document.getElementById('kpi-total-sewing');
+    if (elSewing) elSewing.innerText = formatCurrency(totalSewing);
+
+    const elProfit = document.getElementById('kpi-gross-profit');
+    if (elProfit) elProfit.innerText = formatCurrency(netProfit);
+
+    const elMargin = document.getElementById('kpi-profit-margin');
+    if (elMargin) elMargin.innerText = `${profitMargin.toFixed(1)}% Biên ròng`;
+
+    const elRoas = document.getElementById('kpi-roas');
+    if (elRoas) elRoas.innerText = `${roas.toFixed(2)}x`;
+
+    const elRoi = document.getElementById('kpi-roi');
+    if (elRoi) elRoi.innerText = `ROI: ${roi.toFixed(1)}%`;
+};
+
+// Build Chart.js Graph visuals
+const renderDashboardCharts = () => {
+    const data = getFilteredData();
+    const dates = data.map(item => {
+        const d = new Date(item.date);
+        return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
+    const grossRevenues = data.map(item => item.grossRevenue || item.revenue || 0);
+    const revenues = data.map(item => item.revenue); 
+    const spends = data.map(item => {
+        return Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+    });
+    const cogsValues = data.map(item => Number(item.cogs || 0));
+    const sewingValues = data.map(item => Number(item.sewing || 0)); 
+    const roasValues = data.map(item => {
+        const totalSpend = Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+        return totalSpend > 0 ? (Number(item.revenue) / totalSpend) : 0;
+    });
+
+    const canvasTrend = document.getElementById('trendChart');
+    if (canvasTrend) {
+        if (trendChartInstance) trendChartInstance.destroy();
+        const ctxTrend = canvasTrend.getContext('2d');
+        trendChartInstance = new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Doanh thu tổng (Gross ₫)',
+                        data: grossRevenues,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.01)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Thực nhận sau phí (Net ₫)',
+                        data: revenues,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Chi phí Marketing (₫)',
+                        data: spends,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Giá vốn COGS (gồm may ₫)',
+                        data: cogsValues,
+                        type: 'bar',
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4,
+                        maxBarThickness: 12,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Trong đó: Công may (₫)',
+                        data: sewingValues,
+                        borderColor: '#ec4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                        borderWidth: 1.5,
+                        borderDash: [3, 3],
+                        fill: false,
+                        tension: 0.2,
+                        yAxisID: 'y'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Inter', size: 10 } } },
+                    tooltip: { padding: 10 }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1e6) return (value / 1e6) + 'M';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const canvasRoas = document.getElementById('roasGaugeChart');
+    if (canvasRoas) {
+        if (roasChartInstance) roasChartInstance.destroy();
+        const ctxRoas = canvasRoas.getContext('2d');
+        roasChartInstance = new Chart(ctxRoas, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'ROAS ngày',
+                    data: roasValues,
+                    backgroundColor: roasValues.map(v => v >= 3.0 ? 'rgba(16, 185, 129, 0.75)' : 'rgba(245, 158, 11, 0.75)'),
+                    borderRadius: 5,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { suggestedMax: 5, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + 'x' } }
+                }
+            }
+        });
+    }
+};
+
+const renderChannelsData = () => {
+    const data = getFilteredData();
+    let channelsTotal = { fb: 0, gg: 0, tt: 0, others: 0 };
+    let totalAllChannels = 0;
+
+    data.forEach(item => {
+        channelsTotal.fb += Number(item.spend?.fb || 0);
+        channelsTotal.gg += Number(item.spend?.gg || 0);
+        channelsTotal.tt += Number(item.spend?.tt || 0);
+        channelsTotal.others += Number(item.spend?.others || 0);
+    });
+
+    totalAllChannels = channelsTotal.fb + channelsTotal.gg + channelsTotal.tt + channelsTotal.others;
+
+    const canvasShare = document.getElementById('channelShareChart');
+    if (canvasShare) {
+        if (shareChartInstance) shareChartInstance.destroy();
+        const ctxShare = canvasShare.getContext('2d');
+        shareChartInstance = new Chart(ctxShare, {
+            type: 'doughnut',
+            data: {
+                labels: ['Facebook Ads', 'Google Ads', 'TikTok Ads', 'TMĐT / Khác'],
+                datasets: [{
+                    data: [channelsTotal.fb, channelsTotal.gg, channelsTotal.tt, channelsTotal.others],
+                    backgroundColor: ['#1877f2', '#ea4335', '#000000', '#f59e0b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15 } } },
+                cutout: '65%'
+            }
+        });
+    }
+
+    const tbody = document.getElementById('channel-breakdown-tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        const channelsMeta = [
+            { key: 'fb', name: 'Facebook Ads', colorClass: 'text-blue-600 font-semibold' },
+            { key: 'gg', name: 'Google Search/Display', colorClass: 'text-red-500 font-semibold' },
+            { key: 'tt', name: 'TikTok Ads/Shop', colorClass: 'text-slate-900 font-semibold' },
+            { key: 'others', name: 'TMĐT & Kênh khác', colorClass: 'text-amber-600 font-semibold' }
+        ];
+
+        channelsMeta.forEach(meta => {
+            const val = channelsTotal[meta.key];
+            const share = totalAllChannels > 0 ? (val / totalAllChannels) * 100 : 0;
+            let priority = "Trung bình", priorityColor = "bg-slate-100 text-slate-700";
+            if (share > 35) { priority = "Kênh mũi nhọn"; priorityColor = "bg-emerald-50 text-emerald-700 font-medium"; }
+            else if (share < 10) { priority = "Kênh phụ trợ"; priorityColor = "bg-amber-50 text-amber-700"; }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-3.5 text-left ${meta.colorClass}">${meta.name}</td>
+                <td class="px-4 py-3.5 text-right font-medium">${formatCurrency(val)}</td>
+                <td class="px-4 py-3.5 text-right text-slate-500">${share.toFixed(1)}%</td>
+                <td class="px-4 py-3.5 text-right"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${priorityColor}">${priority}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+};
+
+const renderHistoryLogs = () => {
+    const sortedData = [...appState.data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tbody = document.getElementById('logs-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    sortedData.forEach((item) => {
+        const spendSum = Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+        const itemGross = Number(item.grossRevenue || item.revenue || 0);
+        const itemCogs = Number(item.cogs || 0);
+        const itemSewing = Number(item.sewing || 0); 
+        const netProfit = Number(item.revenue || 0) - spendSum - itemCogs;
+        const roas = spendSum > 0 ? (Number(item.revenue || 0) / spendSum).toFixed(2) : 'N/A';
+        const roasClass = spendSum > 0 ? (roas >= 3.0 ? 'text-emerald-600 font-bold bg-emerald-50' : 'text-amber-600 font-bold bg-amber-50') : 'text-slate-400 bg-slate-50';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition duration-150';
+        tr.innerHTML = `
+            <td class="px-4 py-4 whitespace-nowrap font-medium text-slate-900">${item.date}</td>
+            <td class="px-4 py-4 text-right text-blue-600 font-medium">${formatCurrency(itemGross)}</td>
+            <td class="px-4 py-4 text-right text-emerald-600 font-semibold">${formatCurrency(item.revenue)}</td>
+            <td class="px-4 py-4 text-right text-amber-600 font-medium">${formatCurrency(itemCogs)}</td>
+            <td class="px-4 py-4 text-right text-pink-600 font-medium" title="Tiền công may đã nằm trong Giá vốn COGS">${formatCurrency(itemSewing)}</td>
+            <td class="px-4 py-4 text-right text-indigo-600 font-semibold">${formatCurrency(spendSum)}</td>
+            <td class="px-4 py-4 text-right font-bold ${netProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}">${formatCurrency(netProfit)}</td>
+            <td class="px-4 py-4 text-xs text-slate-500">
+                <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 max-w-[180px]">
+                    <span class="text-blue-500">FB: ${formatCurrency(item.spend?.fb || 0)}</span>
+                    <span class="text-red-500">GG: ${formatCurrency(item.spend?.gg || 0)}</span>
+                    <span class="text-slate-800 font-medium">TT: ${formatCurrency(item.spend?.tt || 0)}</span>
+                    <span class="text-amber-500">K: ${formatCurrency(item.spend?.others || 0)}</span>
+                </div>
+            </td>
+            <td class="px-4 py-4 text-center"><span class="inline-block px-1.5 py-0.5 rounded text-xs ${roasClass}">${roas !== 'N/A' ? roas + 'x' : 'N/A'}</span></td>
+            <td class="px-4 py-4 text-xs text-slate-500 truncate max-w-[150px]" title="${item.notes || ''}">${item.notes || '-'}</td>
+            <td class="px-4 py-4 text-center text-xs font-semibold space-x-2">
+                <button onclick="editEntry('${item.date}')" class="text-brand-600 hover:text-brand-900">Sửa</button>
+                <button onclick="deleteEntry('${item.date}')" class="text-red-500 hover:text-red-700">Xóa</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+const filterTable = () => {
+    const q = document.getElementById('tableSearch').value.toLowerCase();
+    const tbody = document.getElementById('logs-tbody');
+    if (!tbody) return;
+    const rows = tbody.getElementsByTagName('tr');
+    for (let i = 0; i < rows.length; i++) {
+        const noteCell = rows[i].getElementsByTagName('td')[9];
+        const dateCell = rows[i].getElementsByTagName('td')[0];
+        if (noteCell || dateCell) {
+            const txt = (noteCell.textContent || noteCell.innerText + dateCell.textContent).toLowerCase();
+            rows[i].style.display = txt.includes(q) ? "" : "none";
+        }
+    }
+};
+
+const runAIAdvisor = () => {
+    const data = getFilteredData();
+    const healthScoreEl = document.getElementById('ai-health-score');
+    const healthDescEl = document.getElementById('ai-health-desc');
+    const topChannelEl = document.getElementById('ai-top-channel');
+    const recsListEl = document.getElementById('ai-recommendations-list');
+
+    if (data.length === 0) {
+        if (healthScoreEl) healthScoreEl.innerText = '0';
+        if (healthDescEl) healthDescEl.innerText = 'Không có dữ liệu.';
+        return;
+    }
+
+    let totalRevenue = 0, totalSpend = 0, chSpends = { fb: 0, gg: 0, tt: 0, others: 0 };
+    data.forEach(item => {
+        totalRevenue += Number(item.revenue);
+        const itemSpend = Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+        totalSpend += itemSpend;
+        chSpends.fb += Number(item.spend?.fb || 0); chSpends.gg += Number(item.spend?.gg || 0); chSpends.tt += Number(item.spend?.tt || 0); chSpends.others += Number(item.spend?.others || 0);
+    });
+
+    const averageROAS = totalSpend > 0 ? (totalRevenue / totalSpend) : 0;
+    let score = averageROAS >= 3.0 ? 8.5 : (averageROAS >= 2.0 ? 6.8 : 4.5);
+    if (healthScoreEl) healthScoreEl.innerText = score.toFixed(1);
+
+    if (recsListEl) {
+        recsListEl.innerHTML = `
+            <div class="flex gap-3 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs shadow-sm">
+                <i data-lucide="check-circle-2" class="w-5 h-5 flex-shrink-0"></i>
+                <div>
+                    <strong class="block font-bold text-sm mb-0.5">Phân tích ROAS trung bình: ${averageROAS.toFixed(2)}x</strong>
+                    <span>Hệ thống ghi nhận biên hoạt động ổn định. Tiếp tục tối ưu chi phí nguyên vật liệu cấu thành COGS và giữ vững tần suất phân phối Ads.</span>
+                </div>
+            </div>
+        `;
+    }
+    lucide.createIcons();
+};
+
+const runGrowthSimulation = () => {
+    const data = getFilteredData();
+    const outputEl = document.getElementById('simulation-output');
+    if (!outputEl) return;
+    let totalRevenue = 0, totalSpend = 0;
+    data.forEach(item => {
+        totalRevenue += Number(item.revenue);
+        totalSpend += Number(item.spend?.fb || 0) + Number(item.spend?.gg || 0) + Number(item.spend?.tt || 0) + Number(item.spend?.others || 0);
+    });
+    if (totalSpend === 0) { outputEl.innerText = 'Chưa có chi tiêu quảng cáo.'; return; }
+    const currentROAS = totalRevenue / totalSpend;
+    const additionalSpend = totalSpend * 0.20;
+    const additionalRevenue = additionalSpend * currentROAS * 0.95;
+
+    outputEl.innerHTML = `<span class="block text-brand-200 text-xs mt-1">Đầu tư thêm: <strong>${formatCurrency(additionalSpend)}</strong> &rarr; Thu về thêm khoảng: <strong class="text-emerald-400">${formatCurrency(additionalRevenue)}</strong></span>`;
+};
+
+const openModal = (id, editDate = null) => {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    
+    if (editDate) {
+        const record = appState.data.find(x => x.date === editDate);
+        if (record) {
+            document.getElementById('input-date').value = record.date;
+            document.getElementById('input-gross-revenue').value = record.grossRevenue || record.revenue || 0;
+            document.getElementById('input-revenue').value = record.revenue;
+            document.getElementById('input-cogs').value = record.cogs || 0;
+            document.getElementById('input-sewing').value = record.sewing || 0;
+            document.getElementById('input-fb').value = record.spend?.fb || 0;
+            document.getElementById('input-gg').value = record.spend?.gg || 0;
+            document.getElementById('input-tt').value = record.spend?.tt || 0;
+            document.getElementById('input-others').value = record.spend?.others || 0;
+            document.getElementById('input-notes').value = record.notes || '';
+            document.getElementById('entryIndex').value = editDate;
+        }
+    } else if (id === 'addEntryModal') {
+        const form = document.getElementById('entryForm');
+        if (form) form.reset();
+        document.getElementById('input-date').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('entryIndex').value = '';
+    }
+};
+
+const closeModal = (id) => {
+    const modal = document.getElementById(id);
+    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+};
+
+const saveEntry = (e) => {
+    e.preventDefault();
+    const date = document.getElementById('input-date').value;
+    const grossRevenue = parseFloat(document.getElementById('input-gross-revenue').value) || 0;
+    const revenue = parseFloat(document.getElementById('input-revenue').value) || 0;
+    const cogs = parseFloat(document.getElementById('input-cogs').value) || 0;
+    const sewing = parseFloat(document.getElementById('input-sewing').value) || 0;
+    const fb = parseFloat(document.getElementById('input-fb').value) || 0;
+    const gg = parseFloat(document.getElementById('input-gg').value) || 0;
+    const tt = parseFloat(document.getElementById('input-tt').value) || 0;
+    const others = parseFloat(document.getElementById('input-others').value) || 0;
+    const notes = document.getElementById('input-notes').value;
+    const updateDateKey = document.getElementById('entryIndex').value;
+
+    const payload = { date, grossRevenue, revenue, cogs, sewing, spend: { fb, gg, tt, others }, notes };
+
+    if (updateDateKey) {
+        const idx = appState.data.findIndex(x => x.date === updateDateKey);
+        if (idx !== -1) appState.data[idx] = payload;
+    } else {
+        const dupIdx = appState.data.findIndex(x => x.date === date);
+        if (dupIdx !== -1) { showToast('Trùng lặp ngày!', true); return; }
+        appState.data.push(payload);
+    }
+
+    localStorage.setItem('mkt_rev_tracker_data', JSON.stringify(appState.data));
+    closeModal('addEntryModal');
+    updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+};
+
+const editEntry = (date) => { openModal('addEntryModal', date); };
+const deleteEntry = (date) => {
+    triggerConfirmModal('Xóa nhật ký ngày', `Xóa bản ghi ngày ${date}?`, true, () => {
+        appState.data = appState.data.filter(x => x.date !== date);
+        localStorage.setItem('mkt_rev_tracker_data', JSON.stringify(appState.data));
+        updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+    });
+};
+
+const loadSampleDataDirectly = () => {
+    appState.data = getSampleData();
+    localStorage.setItem('mkt_rev_tracker_data', JSON.stringify(appState.data));
+    updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+};
+
+const resetToSampleData = () => {
+    triggerConfirmModal('Đặt lại dữ liệu', 'Khôi phục dữ liệu mẫu ban đầu?', false, () => { loadSampleDataDirectly(); });
+};
+
+const clearAllData = () => {
+    triggerConfirmModal('Giải phóng dữ liệu', 'Xóa toàn bộ nhật ký hệ thống?', true, () => {
+        appState.data = []; localStorage.setItem('mkt_rev_tracker_data', JSON.stringify([]));
+        updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+    });
+};
+
+const exportToCSV = () => {
+    if (appState.data.length === 0) return;
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFFNgay,Gross Rev,Net Rev,FB Ads,GG Ads,TT Ads,Khac,COGS,Sewing,Loi Nhuan,Ghi Chu\n";
+    appState.data.forEach(row => {
+        const spend = (row.spend?.fb||0)+(row.spend?.gg||0)+(row.spend?.tt||0)+(row.spend?.others||0);
+        csvContent += `${row.date},${row.grossRevenue||row.revenue},${row.revenue},${row.spend?.fb||0},${row.spend?.gg||0},${row.spend?.tt||0},${row.spend?.others||0},${row.cogs||0},${row.sewing||0},${row.revenue-spend-(row.cogs||0)},"${row.notes||''}"\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a"); link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Bao_cao_marketing_${new Date().toISOString().substring(0,10)}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+};
+
+/* ==========================================
+   ADVANCED SHOPEE EXCEL/CSV IMPORT ENGINE
+   ========================================== */
+const cleanDate = (dateVal) => {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) {
+        return `${dateVal.getFullYear()}-${String(dateVal.getMonth() + 1).padStart(2, '0')}-${String(dateVal.getDate()).padStart(2, '0')}`;
+    }
+    let dateStr = String(dateVal).trim();
+    if (/^\d{5}$/.test(dateStr)) {
+        const date = new Date((parseInt(dateStr, 10) - 25569) * 86400 * 1000);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+    let matchYMD = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (matchYMD) return `${matchYMD[1]}-${matchYMD[2].padStart(2, '0')}-${matchYMD[3].padStart(2, '0')}`;
+    let matchDMY = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (matchDMY) return `${matchDMY[3]}-${matchDMY[2].padStart(2, '0')}-${matchDMY[1].padStart(2, '0')}`;
+    return dateStr.substring(0, 10);
+};
+
+const parseAmount = (valStr) => {
+    if (typeof valStr === 'number') return valStr;
+    if (!valStr) return 0;
+    let clean = String(valStr).replace(/[^\d.,-]/g, '').trim();
+    if (clean.includes('.') && clean.includes(',')) {
+        clean = clean.indexOf('.') < clean.indexOf(',') ? clean.replace(/\./g, '').replace(',', '.') : clean.replace(/,/g, '');
+    } else if (clean.includes(',')) {
+        clean = clean.split(',')[1].length <= 2 ? clean.replace(',', '.') : clean.replace(/,/g, '');
+    }
+    return parseFloat(clean) || 0;
+};
+
+const parseCSV = (text) => {
+    let lines = [], row = [""], inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        let c = text[i], next = text[i+1];
+        if (c === '"') { if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; } else { inQuotes = !inQuotes; } }
+        else if (c === ',' && !inQuotes) row.push('');
+        else if ((c === '\r' || c === '\n') && !inQuotes) { if (c === '\r' && next === '\n') i++; lines.push(row); row = ['']; }
+        else row[row.length - 1] += c;
+    }
+    if (row.length > 1 || row[0] !== '') lines.push(row);
+    return lines;
+};
+
+const handleShopeeFileSelect = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader(); const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        reader.onload = function(evt) {
+            const workbook = XLSX.read(new Uint8Array(evt.target.result), { type: 'array', cellDates: true });
+            processShopeeData(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: "" }));
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        reader.onload = function(evt) { processShopeeData(parseCSV(evt.target.result)); };
+        reader.readAsText(file);
+    }
+};
+
+const processShopeeData = (rawLines) => {
+    parsedShopeeHeaders = rawLines[0].map(h => String(h||"").trim().toLowerCase());
+    parsedShopeeRows = rawLines.slice(1).filter(r => r.length > 0 && r.some(c => c !== ""));
+    let statusIdx = parsedShopeeHeaders.findIndex(h => h.includes('trạng thái'));
+    
+    uniqueShopeeStatuses = [];
+    if (statusIdx !== -1) {
+        const set = new Set();
+        parsedShopeeRows.forEach(r => { if (r[statusIdx]) set.add(String(r[statusIdx]).trim()); });
+        uniqueShopeeStatuses = Array.from(set);
+    } else { uniqueShopeeStatuses = ["Đã giao", "Đã hoàn thành"]; }
+
+    selectedShopeeStatuses = new Set(uniqueShopeeStatuses.filter(s => s.includes('giao') || s.includes('thành') || s.includes('Delivered') || s.includes('Completed')));
+    renderStatusCheckboxes();
+    document.getElementById('shopee-upload-zone').classList.add('hidden');
+    document.getElementById('shopee-preview-container').classList.remove('hidden');
+    document.getElementById('shopee-import-submit-btn').removeAttribute('disabled');
+    updateShopeeAnalysis();
+};
+
+const renderStatusCheckboxes = () => {
+    const container = document.getElementById('shopee-status-checkboxes');
+    if (!container) return; container.innerHTML = '';
+    uniqueShopeeStatuses.forEach(status => {
+        const isChecked = selectedShopeeStatuses.has(status);
+        const label = document.createElement('label');
+        label.className = "inline-flex items-center bg-white px-2.5 py-1 rounded-md border border-slate-200 text-xs font-semibold cursor-pointer shadow-sm";
+        label.innerHTML = `<input type="checkbox" ${isChecked?'checked':''} onchange="toggleShopeeStatus('${status}')" class="mr-1.5 accent-orange-500">${status}`;
+        container.appendChild(label);
+    });
+};
+
+const toggleShopeeStatus = (status) => {
+    if (selectedShopeeStatuses.has(status)) selectedShopeeStatuses.delete(status);
+    else selectedShopeeStatuses.add(status);
+    updateShopeeAnalysis();
+};
+
+const updateProductCostInput = (key, val) => {
+    const cost = parseFloat(val) || 0;
+    localStorage.setItem('shopee_cogs_cost_' + key, cost);
+    if (importedProductsCatalog[key]) importedProductsCatalog[key].cost = cost;
+    updateShopeeSummaryAndProductsRender();
+};
+
+const updateProductSewingInput = (key, val) => {
+    const sewing = parseFloat(val) || 0;
+    localStorage.setItem('shopee_sewing_cost_' + key, sewing);
+    if (importedProductsCatalog[key]) importedProductsCatalog[key].sewing = sewing;
+    updateShopeeSummaryAndProductsRender();
+};
+
+const updateShopeeSummaryAndProductsRender = () => {
+    let totalCogsVal = 0, totalSewingVal = 0;
+    Object.values(importedProductsCatalog).forEach(prod => {
+        totalCogsVal += prod.qty * prod.cost;
+        totalSewingVal += prod.qty * (prod.sewing || 0);
+        const rowTotalEl = document.getElementById(`prod-total-${prod.id}`);
+        if (rowTotalEl) {
+            rowTotalEl.innerHTML = `
+                <div class="font-semibold text-slate-900">${formatCurrency(prod.qty * prod.cost)}</div>
+                <div class="text-[10px] text-pink-500">Trong đó may: ${formatCurrency(prod.qty * (prod.sewing || 0))}</div>
+            `;
+        }
+    });
+    const elCogsPreview = document.getElementById('shopee-total-cogs-preview');
+    if (elCogsPreview) elCogsPreview.innerText = formatCurrency(totalCogsVal);
+    const elSewingPreview = document.getElementById('shopee-total-sewing-preview');
+    if (elSewingPreview) elSewingPreview.innerText = formatCurrency(totalSewingVal);
+};
+
+const updateShopeeAnalysis = () => {
+    if (parsedShopeeRows.length === 0) return;
+    let dateIdx = parsedShopeeHeaders.findIndex(h => h.includes('ngày đặt'));
+    let statusIdx = parsedShopeeHeaders.findIndex(h => h.includes('trạng thái'));
+    let revIdx = parsedShopeeHeaders.findIndex(h => h.includes('người mua thanh toán') || h.includes('thực nhận'));
+    
+    let prodNameIdx = parsedShopeeHeaders.findIndex(h => h.includes('tên sản phẩm'));
+    let varNameIdx = parsedShopeeHeaders.findIndex(h => h.includes('tên phân loại'));
+    let varSkuIdx = parsedShopeeHeaders.findIndex(h => h.includes('sku phân loại'));
+    let prodSkuIdx = parsedShopeeHeaders.findIndex(h => h.includes('sku sản phẩm') || h === 'sku');
+
+    let fixedFeeIdx = parsedShopeeHeaders.findIndex(h => h === 'phí cố định');
+    let paymentFeeIdx = parsedShopeeHeaders.findIndex(h => h === 'phí thanh toán' || h === 'phí giao dịch');
+    let serviceFeeIdx = parsedShopeeHeaders.findIndex(h => h === 'phí dịch vụ');
+
+    const useFileFees = document.querySelector('input[name="shopee-fee-type"]:checked').value === 'file';
+    const flatFeePercent = parseFloat(document.getElementById('shopee-fee-percent-input').value) || 10.5;
+
+    dailyShopeeSummary = {}; importedProductsCatalog = {};
+    let totalOrders = 0, validOrders = 0, totalGross = 0, totalFees = 0, totalNet = 0;
+    let totalFixed = 0, totalPayment = 0, totalService = 0, totalOther = 0, prodIdCounter = 0;
+
+    parsedShopeeRows.forEach(row => {
+        totalOrders++;
+        const cleanD = cleanDate(row[dateIdx]); if (!cleanD) return;
+        if (!selectedShopeeStatuses.has(String(row[statusIdx]).trim())) return;
+        validOrders++;
+
+        const grossAmount = parseAmount(row[revIdx]); totalGross += grossAmount;
+        let rFixed = 0, rPayment = 0, rService = 0, rOther = 0, rFeeTotal = 0;
+
+        if (useFileFees) {
+            if (fixedFeeIdx !== -1) rFixed = Math.abs(parseAmount(row[fixedFeeIdx]));
+            if (paymentFeeIdx !== -1) rPayment = Math.abs(parseAmount(row[paymentFeeIdx]));
+            if (serviceFeeIdx !== -1) rService = Math.abs(parseAmount(row[serviceFeeIdx]));
+            rFeeTotal = rFixed + rPayment + rService;
+            if (rFeeTotal === 0) { rFeeTotal = grossAmount * 0.105; rOther = rFeeTotal; }
+        } else { rFeeTotal = grossAmount * (flatFeePercent / 100); rOther = rFeeTotal; }
+
+        totalFees += rFeeTotal; totalFixed += rFixed; totalPayment += rPayment; totalService += rService; totalOther += rOther;
+        const netAmount = grossAmount - rFeeTotal; totalNet += netAmount;
+
+        if (!dailyShopeeSummary[cleanD]) dailyShopeeSummary[cleanD] = { date: cleanD, orderCount: 0, gross: 0, fees: 0, net: 0, importChecked: true };
+        dailyShopeeSummary[cleanD].orderCount++; dailyShopeeSummary[cleanD].gross += grossAmount; dailyShopeeSummary[cleanD].fees += rFeeTotal; dailyShopeeSummary[cleanD].net += netAmount;
+
+        if (prodNameIdx !== -1 && row[prodNameIdx]) {
+            const pName = String(row[prodNameIdx]).trim();
+            const vName = varNameIdx !== -1 ? String(row[varNameIdx]).trim() : '';
+            const vSku = varSkuIdx !== -1 ? String(row[varSkuIdx]).trim() : '';
+            const pSku = prodSkuIdx !== -1 ? String(row[prodSkuIdx]).trim() : '';
+            
+            // Khóa đối sánh SKU phân loại hàng ưu tiên cao nhất
+            const uniqueProductKey = vSku ? vSku : (pSku ? pSku : (vName ? `${pName}_${vName}` : pName));
+            const finalSkuDisplay = vSku ? vSku : (pSku ? pSku : 'N/A');
+
+            if (!importedProductsCatalog[uniqueProductKey]) {
+                prodIdCounter++;
+                const savedCost = parseFloat(localStorage.getItem('shopee_cogs_cost_' + uniqueProductKey)) || 0;
+                const savedSewing = parseFloat(localStorage.getItem('shopee_sewing_cost_' + uniqueProductKey)) || 0;
+                importedProductsCatalog[uniqueProductKey] = { id: prodIdCounter, key: uniqueProductKey, name: pName, variation: vName, sku: finalSkuDisplay, qty: 0, cost: savedCost, sewing: savedSewing };
+            }
+            importedProductsCatalog[uniqueProductKey].qty++;
+        }
+    });
+
+    document.getElementById('shopee-total-orders').innerText = totalOrders;
+    document.getElementById('shopee-valid-orders').innerText = validOrders;
+    document.getElementById('shopee-total-gross').innerText = formatCurrency(totalGross);
+    document.getElementById('shopee-total-fees').innerText = formatCurrency(totalFees);
+    document.getElementById('shopee-total-net').innerText = formatCurrency(totalNet);
+    document.getElementById('shopee-fixed-fee-sum').innerText = formatCurrency(totalFixed);
+    document.getElementById('shopee-payment-fee-sum').innerText = formatCurrency(totalPayment);
+    document.getElementById('shopee-service-fee-sum').innerText = formatCurrency(totalService);
+    document.getElementById('shopee-other-fee-sum').innerText = formatCurrency(totalOther);
+
+    const productTbody = document.getElementById('shopee-products-tbody');
+    if (productTbody) {
+        productTbody.innerHTML = '';
+        Object.values(importedProductsCatalog).forEach(prod => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-2 font-medium">${prod.name} ${prod.variation?`<span class="text-orange-600 bg-orange-50 px-1 rounded text-[10px]">${prod.variation}</span>`:''}</td>
+                <td class="px-4 py-2 font-mono text-[10px]">${prod.sku}</td>
+                <td class="px-4 py-2 text-center font-bold">${prod.qty}</td>
+                <td class="px-4 py-2"><input type="number" value="${prod.cost}" oninput="updateProductCostInput('${prod.key}', this.value)" class="w-24 text-right border rounded px-1 py-0.5"></td>
+                <td class="px-4 py-2"><input type="number" value="${prod.sewing}" oninput="updateProductSewingInput('${prod.key}', this.value)" class="w-24 text-right border rounded px-1 py-0.5 text-pink-700"></td>
+                <td class="px-4 py-2 text-right" id="prod-total-${prod.id}">0 ₫</td>
+            `;
+            productTbody.appendChild(tr);
+        });
+    }
+    updateShopeeSummaryAndProductsRender();
+
+    const previewTbody = document.getElementById('shopee-preview-tbody');
+    if (previewTbody) {
+        previewTbody.innerHTML = '';
+        Object.values(dailyShopeeSummary).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-4 py-2 font-semibold">${item.date}</td>
+                <td class="px-4 py-2 text-center">${item.orderCount} đơn</td>
+                <td class="px-4 py-2 text-right">${formatCurrency(item.gross)}</td>
+                <td class="px-4 py-2 text-right text-red-500">${formatCurrency(item.fees)}</td>
+                <td class="px-4 py-2 text-right text-emerald-600 font-bold">${formatCurrency(item.net)}</td>
+                <td class="px-4 py-2 text-center"><input type="checkbox" checked onchange="toggleShopeeDateImport('${item.date}')"></td>
+            `;
+            previewTbody.appendChild(tr);
+        });
+    }
+};
+
+const commitShopeeImport = () => {
+    const datesToImport = Object.values(dailyShopeeSummary).filter(x => x.importChecked);
+    const mergeMode = document.querySelector('input[name="shopee-merge-mode"]:checked').value;
+    
+    let totalCogsVal = 0, totalSewingVal = 0;
+    Object.values(importedProductsCatalog).forEach(p => { totalCogsVal += p.qty * p.cost; totalSewingVal += p.qty * (p.sewing||0); });
+    const overallNetSum = datesToImport.reduce((sum, item) => sum + item.net, 0);
+
+    datesToImport.forEach(shopeeDay => {
+        const existingIdx = appState.data.findIndex(x => x.date === shopeeDay.date);
+        const finalNet = Math.round(shopeeDay.net);
+        const finalGross = Math.round(shopeeDay.gross);
+        const shareRatio = overallNetSum > 0 ? (shopeeDay.net / overallNetSum) : (1 / datesToImport.length);
+        const distributedCogs = Math.round(totalCogsVal * shareRatio);
+        const distributedSewing = Math.round(totalSewingVal * shareRatio);
+        const note = `Đồng bộ Shopee (${shopeeDay.orderCount} đơn)`;
+
+        if (existingIdx !== -1) {
+            const current = appState.data[existingIdx];
+            if (mergeMode === 'accumulate') {
+                current.revenue += finalNet; current.grossRevenue = (current.grossRevenue||0) + finalGross;
+                current.cogs = (current.cogs||0) + distributedCogs; current.sewing = (current.sewing||0) + distributedSewing;
+            } else {
+                current.revenue = finalNet; current.grossRevenue = finalGross; current.cogs = distributedCogs; current.sewing = distributedSewing;
+            }
+        } else {
+            appState.data.push({ date: shopeeDay.date, grossRevenue: finalGross, revenue: finalNet, cogs: distributedCogs, sewing: distributedSewing, spend: { fb: 0, gg: 0, tt: 0, others: 0 }, notes: note });
+        }
+    });
+
+    appState.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+    localStorage.setItem('mkt_rev_tracker_data', JSON.stringify(appState.data));
+    closeModal('shopeeImportModal'); resetShopeeImportZone();
+    updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+};
+
+const resetShopeeImportZone = () => {
+    document.getElementById('shopee-file-input').value = '';
+    document.getElementById('shopee-upload-zone').classList.remove('hidden');
+    document.getElementById('shopee-preview-container').classList.add('hidden');
+};
+
+window.onload = function() {
+    lucide.createIcons(); updateDashboardMetrics(); renderDashboardCharts(); renderHistoryLogs();
+};
+</script>
+</body>
+</html>
